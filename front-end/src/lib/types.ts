@@ -38,6 +38,11 @@ export interface Investment {
   updatedAt: string;
 }
 
+export interface InvestmentProjection extends Investment {
+  monthsActive: number;
+  projectedIncome: number;
+}
+
 export interface Report {
   id: string;
   userId: string;

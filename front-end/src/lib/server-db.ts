@@ -1,7 +1,14 @@
 "use server";
 
 import { cookies } from "next/headers";
-import type { Income, Expense, Investment, Report, User } from "./types";
+import type {
+  Income,
+  Expense,
+  Investment,
+  Report,
+  User,
+  InvestmentProjection,
+} from "./types";
 
 type GlobalData = {
   users: User[];
@@ -415,6 +422,51 @@ export async function addReport(
   return report;
 }
 
+export async function generateReport(
+  startDate: string,
+  endDate: string
+): Promise<Report> {
+  const [incomes, expenses, investments] = await Promise.all([
+    getIncomes(),
+    getExpenses(),
+    getInvestments(),
+  ]);
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  const totalIncomes = incomes
+    .filter((i) => {
+      const d = new Date(i.date);
+      return d >= start && d <= end;
+    })
+    .reduce((sum, i) => sum + i.value, 0);
+
+  const totalExpenses = expenses
+    .filter((e) => {
+      const d = new Date(e.date);
+      return d >= start && d <= end;
+    })
+    .reduce((sum, e) => sum + e.value, 0);
+
+  const totalInvestments = investments
+    .filter((inv) => {
+      const d = new Date(inv.date);
+      return d >= start && d <= end;
+    })
+    .reduce((sum, inv) => sum + inv.value, 0);
+
+  const report = await addReport({
+    totalIncomes,
+    totalExpenses,
+    totalInvestments,
+    startDate,
+    endDate,
+  });
+
+  return report;
+}
+
 export async function deleteReport(id: string): Promise<boolean> {
   const userId = await getCurrentUserId();
   if (!userId) return false;
@@ -467,7 +519,7 @@ export async function calculateInvestmentIncome(
 export async function getInvestmentProjections(
   startDate: string,
   endDate: string
-) {
+): Promise<InvestmentProjection[]> {
   const userInvestments = await getInvestments();
   const start = new Date(startDate);
   const end = new Date(endDate);
